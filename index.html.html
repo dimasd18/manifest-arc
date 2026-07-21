@@ -254,7 +254,10 @@
     invoices: [],
     invoiceCounter: 0,
     lastCheckedBlock: null,
-    pollHandle: null
+    pollHandle: null,
+    pollCycle: 0,
+    basePollIntervalMs: 20000, // base delay 20s (up from 10s) to avoid public RPC rate limits
+    pollIntervalMs: 20000
   };
 
   const $ = (id) => document.getElementById(id);
@@ -357,17 +360,34 @@
 
   async function refreshBalances(){
     if (!state.address) return;
-    try{
-      const [native, usdc] = await Promise.all([
-        getNativeBalance(state.address),
-        getUsdcBalance(state.address)
-      ]);
-      $('nativeBal').textContent = formatUnits(native, CONFIG.NATIVE_DECIMALS);
-      $('usdcBal').textContent = formatUnits(usdc, CONFIG.USDC_DECIMALS);
-      return { native, usdc };
-    } catch (err){
-      setStatus($('walletMsg'), 'Failed to fetch balance: ' + err.message, 'error');
+    const results = await Promise.allSettled([
+      getNativeBalance(state.address),
+      getUsdcBalance(state.address)
+    ]);
+    const [nativeResult, usdcResult] = results;
+
+    if (nativeResult.status === 'fulfilled'){
+      $('nativeBal').textContent = formatUnits(nativeResult.value, CONFIG.NATIVE_DECIMALS);
     }
+    if (usdcResult.status === 'fulfilled'){
+      $('usdcBal').textContent = formatUnits(usdcResult.value, CONFIG.USDC_DECIMALS);
+    }
+
+    if (nativeResult.status === 'rejected' || usdcResult.status === 'rejected'){
+      const isRateLimit = /limit/i.test((nativeResult.reason || usdcResult.reason || {}).message || '');
+      setStatus($('walletMsg'),
+        isRateLimit
+          ? 'Public RPC is rate-limiting requests, retrying periodically…'
+          : 'Failed to fetch balance: ' + ((nativeResult.reason || usdcResult.reason).message || 'unknown error'),
+        'error');
+      state.pollIntervalMs = Math.min(state.pollIntervalMs * 2, 90000); // backoff, max 90 seconds
+      return null;
+    }
+
+    // Success: reset to normal interval and clear error message
+    state.pollIntervalMs = state.basePollIntervalMs;
+    setStatus($('walletMsg'), '', '');
+    return { native: nativeResult.value, usdc: usdcResult.value };
   }
 
   // ── Invoices ───────────────────────────────────────────────────────
@@ -420,10 +440,19 @@
   });
 
   // ── Polling: check incoming payments & transaction history ────────────
+  // Self-scheduled (not a fixed setInterval) so the delay can grow automatically
+  // when the public RPC rate-limits requests (see pollIntervalMs in refreshBalances).
   function startPolling(){
     if (state.pollHandle) return;
-    state.pollHandle = setInterval(pollOnce, 10000);
+    scheduleNextPoll();
     pollOnce();
+  }
+
+  function scheduleNextPoll(){
+    state.pollHandle = setTimeout(async () => {
+      await pollOnce();
+      scheduleNextPoll();
+    }, state.pollIntervalMs);
   }
 
   async function pollOnce(){
@@ -442,7 +471,12 @@
       }
       if (changed) renderInvoices();
     }
-    await loadRecentTransfers();
+    // Transaction history needs 2 extra RPC calls (blockNumber + getLogs),
+    // so it only runs every 3rd cycle instead of every cycle to save RPC quota.
+    state.pollCycle += 1;
+    if (state.pollCycle % 3 === 0){
+      await loadRecentTransfers();
+    }
   }
 
   async function loadRecentTransfers(){
@@ -477,7 +511,9 @@
         list.insertAdjacentHTML('afterbegin', items);
       }
     } catch(err){
-      // Some public RPCs limit block range; fail silently and retry on the next cycle.
+      // Some public RPCs limit block range or request count; fail silently
+      // and retry next cycle (the next interval already grows automatically
+      // via pollIntervalMs if refreshBalances also detects a rate limit).
     }
   }
 
