@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manifest — USDC Payment Tracker · Built on Arc</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,900&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0B1B2E;
+    --surface: #12283F;
+    --surface-2: #1B3552;
+    --border: #2A4562;
+    --text: #E8EDF3;
+    --text-dim: #92A6BC;
+    --brass: #C9A24B;
+    --brass-bright: #E3BE6C;
+    --success: #5FAE7C;
+    --danger: #D97A6C;
+  }
+  *{ box-sizing: border-box; }
+  html{ scroll-behavior: smooth; }
+  body{
+    margin:0;
+    background: var(--bg);
+    background-image:
+      radial-gradient(circle at 15% 0%, rgba(201,162,75,0.07), transparent 40%),
+      radial-gradient(circle at 100% 30%, rgba(95,174,124,0.05), transparent 45%);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap{ max-width: 720px; margin: 0 auto; padding: 28px 20px 80px; }
+
+  header.top{
+    display:flex; justify-content:space-between; align-items:flex-start;
+    gap: 16px; margin-bottom: 28px; flex-wrap: wrap;
+  }
+  .brand h1{
+    font-family:'Fraunces', serif; font-weight:900; font-size: 1.9rem;
+    letter-spacing: -0.02em; margin: 0 0 4px;
+  }
+  .brand p{ margin:0; color: var(--text-dim); font-size: 0.92rem; }
+  .built-on{
+    font-family:'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--brass);
+    letter-spacing: 0.04em; text-transform: uppercase; margin-top: 6px; display:block;
+  }
+
+  .net-badge{
+    display:flex; align-items:center; gap:8px;
+    background: var(--surface); border:1px solid var(--border);
+    padding: 8px 14px; border-radius: 999px; font-size: 0.82rem; color: var(--text-dim);
+    white-space: nowrap;
+  }
+  .dot{ width:8px; height:8px; border-radius:50%; background: var(--danger); flex:none; }
+  .dot.ok{ background: var(--success); box-shadow: 0 0 0 3px rgba(95,174,124,0.18); }
+
+  .card{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 22px;
+    margin-bottom: 20px;
+  }
+  .card h2{
+    font-family:'Fraunces', serif; font-weight:600; font-size: 1.05rem;
+    margin: 0 0 16px; display:flex; align-items:center; gap:10px;
+  }
+  .card h2 .eyebrow{
+    font-family:'JetBrains Mono', monospace; font-size: 0.68rem; color: var(--brass);
+    border: 1px solid var(--border); border-radius: 6px; padding: 2px 6px;
+  }
+
+  button{
+    font-family:'Inter', sans-serif; font-weight:600; font-size: 0.9rem;
+    border-radius: 10px; border: 1px solid transparent; cursor: pointer;
+    padding: 11px 18px; transition: transform .12s ease, background .15s ease;
+  }
+  button.primary{ background: var(--brass); color: #14202E; }
+  button.primary:hover{ background: var(--brass-bright); }
+  button.ghost{ background: transparent; color: var(--text); border-color: var(--border); }
+  button.ghost:hover{ border-color: var(--brass); }
+  button:disabled{ opacity: 0.45; cursor: not-allowed; }
+  button:focus-visible, input:focus-visible{ outline: 2px solid var(--brass-bright); outline-offset: 2px; }
+
+  .wallet-row{ display:flex; align-items:center; gap: 12px; flex-wrap: wrap; }
+  .addr{
+    font-family:'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--text-dim);
+    background: var(--surface-2); padding: 6px 10px; border-radius: 8px; border:1px solid var(--border);
+  }
+
+  .balances{ display:grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 16px; }
+  .balance-box{
+    background: var(--surface-2); border:1px solid var(--border); border-radius: 10px; padding: 14px 16px;
+  }
+  .balance-box .label{ font-size: 0.72rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em; }
+  .balance-box .value{ font-family:'JetBrains Mono', monospace; font-size: 1.3rem; font-weight:700; margin-top: 4px; }
+
+  form .field{ margin-bottom: 14px; }
+  label{ display:block; font-size: 0.82rem; color: var(--text-dim); margin-bottom: 6px; }
+  input[type=text], input[type=number]{
+    width: 100%; background: var(--surface-2); border:1px solid var(--border);
+    color: var(--text); padding: 10px 12px; border-radius: 8px; font-family:'JetBrains Mono', monospace;
+    font-size: 0.92rem;
+  }
+
+  .invoice{
+    border: 1px solid var(--border); border-radius: 12px; padding: 18px; margin-bottom: 14px;
+    background: var(--surface-2); display:grid; grid-template-columns: 1fr auto; gap: 16px; align-items:center;
+  }
+  .invoice .meta .num{ font-family:'JetBrains Mono', monospace; color: var(--brass); font-size: 0.78rem; }
+  .invoice .meta .amt{ font-family:'Fraunces', serif; font-weight:600; font-size: 1.4rem; margin: 4px 0; }
+  .invoice .meta .note{ color: var(--text-dim); font-size: 0.85rem; }
+  .invoice .meta .to{ font-family:'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--text-dim); margin-top: 6px; }
+
+  .stamp{
+    width: 84px; height: 84px; border-radius: 50%;
+    display:flex; align-items:center; justify-content:center; text-align:center;
+    font-family:'Fraunces', serif; font-weight:900; font-size: 0.72rem; letter-spacing: 0.03em;
+    border: 3px dashed var(--text-dim); color: var(--text-dim);
+    transform: rotate(-8deg);
+  }
+  .stamp.paid{
+    border: 3px solid var(--brass);
+    background: radial-gradient(circle at 35% 30%, rgba(201,162,75,0.35), rgba(201,162,75,0.08));
+    color: var(--brass-bright);
+    animation: thump 0.5s ease;
+  }
+  @keyframes thump{
+    0%{ transform: rotate(-8deg) scale(0.7); opacity: 0.4; }
+    60%{ transform: rotate(-4deg) scale(1.12); opacity: 1; }
+    100%{ transform: rotate(-6deg) scale(1); }
+  }
+  .paid-detail{ font-size: 0.72rem; color: var(--success); margin-top: 6px; }
+  .paid-detail a{ color: var(--success); }
+
+  .tx-list{ list-style:none; margin:0; padding:0; }
+  .tx-list li{
+    display:flex; justify-content:space-between; gap: 10px; padding: 10px 0;
+    border-bottom: 1px solid var(--border); font-size: 0.85rem;
+  }
+  .tx-list li:last-child{ border-bottom: none; }
+  .tx-list .amt{ font-family:'JetBrains Mono', monospace; color: var(--success); font-weight:600; }
+  .tx-list .from{ font-family:'JetBrains Mono', monospace; color: var(--text-dim); }
+  .empty{ color: var(--text-dim); font-size: 0.85rem; padding: 8px 0; }
+
+  .banner{
+    font-size: 0.8rem; color: var(--text-dim); background: var(--surface-2);
+    border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; margin-bottom: 20px;
+  }
+  .status-msg{ font-size: 0.82rem; margin-top: 10px; }
+  .status-msg.error{ color: var(--danger); }
+  .status-msg.ok{ color: var(--success); }
+
+  @media (max-width: 480px){
+    .balances{ grid-template-columns: 1fr; }
+    .invoice{ grid-template-columns: 1fr; }
+    .stamp{ justify-self: start; }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .stamp.paid{ animation: none; }
+    html{ scroll-behavior: auto; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="brand">
+      <h1>Manifest</h1>
+      <p>Real-time USDC payment status tracking.</p>
+      <span class="built-on">Built on Arc Testnet</span>
+    </div>
+    <div class="net-badge">
+      <span class="dot" id="netDot"></span>
+      <span id="netLabel">Not connected</span>
+    </div>
+  </header>
+
+  <div class="banner">
+    Demo for the export/SME vendor use case: instead of waiting 1–3 days for manual wire transfer confirmation,
+    invoices here automatically update status the moment USDC is received on-chain. Network: Arc Testnet — do not use real funds.
+  </div>
+
+  <section class="card">
+    <h2><span class="eyebrow">01</span> Wallet</h2>
+    <div class="wallet-row">
+      <button class="primary" id="connectBtn">Connect Wallet</button>
+      <span class="addr" id="addrLabel" style="display:none;"></span>
+    </div>
+    <div class="balances">
+      <div class="balance-box">
+        <div class="label">Native USDC (gas)</div>
+        <div class="value" id="nativeBal">—</div>
+      </div>
+      <div class="balance-box">
+        <div class="label">USDC (ERC-20)</div>
+        <div class="value" id="usdcBal">—</div>
+      </div>
+    </div>
+    <div class="status-msg" id="walletMsg"></div>
+  </section>
+
+  <section class="card">
+    <h2><span class="eyebrow">02</span> Create Invoice</h2>
+    <form id="invoiceForm">
+      <div class="field">
+        <label for="amountInput">Amount (USDC)</label>
+        <input type="number" id="amountInput" step="0.000001" min="0" placeholder="250.00" required>
+      </div>
+      <div class="field">
+        <label for="noteInput">Note (optional)</label>
+        <input type="text" id="noteInput" placeholder="Payment for shipment #A1029">
+      </div>
+      <button type="submit" class="primary" id="createInvoiceBtn" disabled>Create Invoice</button>
+    </form>
+  </section>
+
+  <section class="card">
+    <h2><span class="eyebrow">03</span> Invoice List</h2>
+    <div id="invoiceList">
+      <div class="empty">No invoices yet. Connect your wallet and create your first invoice.</div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2><span class="eyebrow">04</span> Incoming Transaction History</h2>
+    <ul class="tx-list" id="txList">
+      <li class="empty" style="border:none;">No data yet. History appears once your wallet is connected.</li>
+    </ul>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  // ── Arc Testnet network configuration ─────────────────────────────
+  const CONFIG = {
+    RPC_URL: 'https://rpc.testnet.arc.network',
+    CHAIN_ID_DEC: 5042002,
+    CHAIN_ID_HEX: '0x4cef52',
+    USDC_ADDRESS: '0x3600000000000000000000000000000000000000',
+    USDC_DECIMALS: 6,
+    NATIVE_DECIMALS: 18,
+    EXPLORER: 'https://testnet.arcscan.app',
+    TRANSFER_TOPIC: '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef'
+  };
+
+  const state = {
+    address: null,
+    invoices: [],
+    invoiceCounter: 0,
+    lastCheckedBlock: null,
+    pollHandle: null
+  };
+
+  const $ = (id) => document.getElementById(id);
+
+  // ── Number helpers: BigInt <-> decimal (mirrors the 6-decimal conversion in the Python bot) ─
+  function parseUnits(str, decimals){
+    str = (str || '0').trim();
+    let [whole, frac = ''] = str.split('.');
+    whole = whole || '0';
+    frac = (frac + '0'.repeat(decimals)).slice(0, decimals);
+    return BigInt(whole) * (10n ** BigInt(decimals)) + BigInt(frac || '0');
+  }
+  function formatUnits(value, decimals){
+    const neg = value < 0n; if (neg) value = -value;
+    const base = 10n ** BigInt(decimals);
+    const whole = value / base;
+    const frac = (value % base).toString().padStart(decimals, '0').replace(/0+$/, '') || '0';
+    return (neg ? '-' : '') + whole.toString() + '.' + frac;
+  }
+  function padTopicAddress(addr){
+    return '0x' + '0'.repeat(24) + addr.slice(2).toLowerCase();
+  }
+  function short(addr){
+    return addr.slice(0, 6) + '…' + addr.slice(-4);
+  }
+
+  // ── Raw JSON-RPC calls to Arc Testnet ─────────────────────
+  async function rpcCall(method, params){
+    const res = await fetch(CONFIG.RPC_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params })
+    });
+    const json = await res.json();
+    if (json.error) throw new Error(json.error.message || 'RPC error');
+    return json.result;
+  }
+
+  async function getNativeBalance(address){
+    const hex = await rpcCall('eth_getBalance', [address, 'latest']);
+    return BigInt(hex);
+  }
+
+  async function getUsdcBalance(address){
+    // balanceOf(address) selector: 0x70a08231
+    const data = '0x70a08231' + '0'.repeat(24) + address.slice(2).toLowerCase();
+    const hex = await rpcCall('eth_call', [{ to: CONFIG.USDC_ADDRESS, data }, 'latest']);
+    return BigInt(hex);
+  }
+
+  function setStatus(el, msg, kind){
+    el.textContent = msg;
+    el.className = 'status-msg' + (kind ? ' ' + kind : '');
+  }
+
+  // ── Wallet connection ────────────────────────────────────────────────
+  async function connectWallet(){
+    if (!window.ethereum){
+      setStatus($('walletMsg'), 'MetaMask not detected. Please install the extension to continue.', 'error');
+      return;
+    }
+    try{
+      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+      state.address = accounts[0];
+
+      const currentChain = await window.ethereum.request({ method: 'eth_chainId' });
+      if (currentChain !== CONFIG.CHAIN_ID_HEX){
+        try{
+          await window.ethereum.request({
+            method: 'wallet_addEthereumChain',
+            params: [{
+              chainId: CONFIG.CHAIN_ID_HEX,
+              chainName: 'Arc Testnet',
+              nativeCurrency: { name: 'USDC', symbol: 'USDC', decimals: CONFIG.NATIVE_DECIMALS },
+              rpcUrls: [CONFIG.RPC_URL],
+              blockExplorerUrls: [CONFIG.EXPLORER]
+            }]
+          });
+        } catch (addErr){
+          setStatus($('walletMsg'), 'Failed to add Arc Testnet to your wallet.', 'error');
+          return;
+        }
+      }
+
+      $('addrLabel').style.display = 'inline-block';
+      $('addrLabel').textContent = short(state.address);
+      $('connectBtn').textContent = 'Connected';
+      $('connectBtn').disabled = true;
+      $('createInvoiceBtn').disabled = false;
+      $('netDot').classList.add('ok');
+      $('netLabel').textContent = 'Arc Testnet';
+      setStatus($('walletMsg'), '', '');
+
+      await refreshBalances();
+      startPolling();
+    } catch (err){
+      setStatus($('walletMsg'), 'Connection cancelled or failed: ' + err.message, 'error');
+    }
+  }
+
+  async function refreshBalances(){
+    if (!state.address) return;
+    try{
+      const [native, usdc] = await Promise.all([
+        getNativeBalance(state.address),
+        getUsdcBalance(state.address)
+      ]);
+      $('nativeBal').textContent = formatUnits(native, CONFIG.NATIVE_DECIMALS);
+      $('usdcBal').textContent = formatUnits(usdc, CONFIG.USDC_DECIMALS);
+      return { native, usdc };
+    } catch (err){
+      setStatus($('walletMsg'), 'Failed to fetch balance: ' + err.message, 'error');
+    }
+  }
+
+  // ── Invoices ───────────────────────────────────────────────────────
+  function renderInvoices(){
+    const list = $('invoiceList');
+    if (state.invoices.length === 0){
+      list.innerHTML = '<div class="empty">No invoices yet. Create your first invoice above.</div>';
+      return;
+    }
+    list.innerHTML = state.invoices.slice().reverse().map(inv => `
+      <div class="invoice">
+        <div class="meta">
+          <div class="num">MANIFEST #${String(inv.id).padStart(4,'0')}</div>
+          <div class="amt">${inv.amount} USDC</div>
+          ${inv.note ? `<div class="note">${escapeHtml(inv.note)}</div>` : ''}
+          <div class="to">To: ${short(inv.targetAddress)}</div>
+          ${inv.status === 'paid'
+            ? `<div class="paid-detail">Paid · balance increase detected at ${inv.paidAt}</div>`
+            : ''}
+        </div>
+        <div class="stamp ${inv.status === 'paid' ? 'paid' : ''}">
+          ${inv.status === 'paid' ? 'PAID' : 'PENDING'}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function escapeHtml(s){
+    return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  $('invoiceForm').addEventListener('submit', function(e){
+    e.preventDefault();
+    const amountStr = $('amountInput').value;
+    if (!amountStr || Number(amountStr) <= 0) return;
+    state.invoiceCounter += 1;
+    state.invoices.push({
+      id: state.invoiceCounter,
+      amount: amountStr,
+      amountUnits: parseUnits(amountStr, CONFIG.USDC_DECIMALS),
+      note: $('noteInput').value,
+      targetAddress: state.address,
+      createdAt: new Date(),
+      baselineUsdc: null, // set on first poll
+      status: 'pending'
+    });
+    $('amountInput').value = '';
+    $('noteInput').value = '';
+    renderInvoices();
+  });
+
+  // ── Polling: check incoming payments & transaction history ────────────
+  function startPolling(){
+    if (state.pollHandle) return;
+    state.pollHandle = setInterval(pollOnce, 10000);
+    pollOnce();
+  }
+
+  async function pollOnce(){
+    if (!state.address) return;
+    const balances = await refreshBalances();
+    if (balances){
+      let changed = false;
+      for (const inv of state.invoices){
+        if (inv.status !== 'pending') continue;
+        if (inv.baselineUsdc === null){ inv.baselineUsdc = balances.usdc; continue; }
+        if (balances.usdc - inv.baselineUsdc >= inv.amountUnits){
+          inv.status = 'paid';
+          inv.paidAt = new Date().toLocaleTimeString('id-ID');
+          changed = true;
+        }
+      }
+      if (changed) renderInvoices();
+    }
+    await loadRecentTransfers();
+  }
+
+  async function loadRecentTransfers(){
+    try{
+      const latestHex = await rpcCall('eth_blockNumber', []);
+      const latest = parseInt(latestHex, 16);
+      if (state.lastCheckedBlock === null){
+        state.lastCheckedBlock = Math.max(0, latest - 3000);
+      }
+      if (latest <= state.lastCheckedBlock) return;
+
+      const logs = await rpcCall('eth_getLogs', [{
+        address: CONFIG.USDC_ADDRESS,
+        topics: [CONFIG.TRANSFER_TOPIC, null, padTopicAddress(state.address)],
+        fromBlock: '0x' + (state.lastCheckedBlock + 1).toString(16),
+        toBlock: '0x' + latest.toString(16)
+      }]);
+
+      state.lastCheckedBlock = latest;
+
+      if (logs && logs.length){
+        const list = $('txList');
+        if (list.querySelector('.empty')) list.innerHTML = '';
+        const items = logs.map(log => {
+          const from = '0x' + log.topics[1].slice(26);
+          const value = BigInt(log.data);
+          return `<li>
+            <span class="from">from ${short(from)}</span>
+            <span class="amt">+${formatUnits(value, CONFIG.USDC_DECIMALS)} USDC</span>
+          </li>`;
+        }).reverse().join('');
+        list.insertAdjacentHTML('afterbegin', items);
+      }
+    } catch(err){
+      // Some public RPCs limit block range; fail silently and retry on the next cycle.
+    }
+  }
+
+  $('connectBtn').addEventListener('click', connectWallet);
+
+  if (window.ethereum){
+    window.ethereum.on && window.ethereum.on('accountsChanged', () => window.location.reload());
+    window.ethereum.on && window.ethereum.on('chainChanged', () => window.location.reload());
+  }
+})();
+</script>
+</body>
+</html>
